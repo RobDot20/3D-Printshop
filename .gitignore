@@ -1,0 +1,26 @@
+# Dependencies & builds
+node_modules/
+dist/
+build/
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.production
+
+# Runtime 3D files & local storage buckets
+storage/
+uploads/
+*.gcode
+*.stl
+*.obj
+*.3mf
+
+# Exception: allow small test meshes and printer profiles in the docker folder
+!docker/slicer-profiles/**
+!docker/test-fixtures/*.stl
+
+# OS & Editor files
+.DS_Store
+.vscode/
+*.log

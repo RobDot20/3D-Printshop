@@ -1,0 +1,18 @@
+{
+  "name": "3d-printshop-monorepo",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=apps/client",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:worker": "npm run dev --workspace=apps/slicer-worker",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/api",
+    "build": "npm run build --workspaces --if-present"
+  }
+}
