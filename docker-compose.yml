@@ -8,7 +8,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-printshop}
     volumes:
-      - /srv/printshop-data/postgres:/var/lib/postgresql/data
+      - /home/pepe/printshop-data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - printshop_internal
     healthcheck:
@@ -23,7 +25,7 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
     volumes:
-      - /srv/printshop-data/redis:/data
+      - /home/pepe/printshop-data/redis:/data
     networks:
       - printshop_internal
 
@@ -36,9 +38,9 @@ services:
     user: "1000:1000"
     env_file: .env
     volumes:
-      - /srv/printshop-data/catalog-models:/data/catalog
-      - /srv/printshop-data/customer-uploads:/data/uploads
-      - /srv/printshop-data/gcode-output:/data/gcode:ro
+      - /home/pepe/printshop-data/catalog-models:/data/catalog
+      - /home/pepe/printshop-data/customer-uploads:/data/uploads
+      - /home/pepe/printshop-data/gcode-output:/data/gcode:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,8 +60,8 @@ services:
     user: "1000:1000"
     env_file: .env
     volumes:
-      - /srv/printshop-data/customer-uploads:/data/uploads:ro
-      - /srv/printshop-data/gcode-output:/data/gcode
+      - /home/pepe/printshop-data/customer-uploads:/data/uploads:ro
+      - /home/pepe/printshop-data/gcode-output:/data/gcode
     depends_on:
       - redis
       - postgres

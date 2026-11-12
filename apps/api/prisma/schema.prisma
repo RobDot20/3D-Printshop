@@ -1,0 +1,167 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum MaterialType {
+  PLA
+  PETG
+  ABS
+  TPU
+  ASA
+}
+
+enum QuoteStatus {
+  QUEUED
+  SLICING
+  COMPLETED
+  FAILED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID_QUEUED
+  PRINTING
+  POST_PROCESSING
+  SHIPPED
+  CANCELLED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         Role          @default(CUSTOMER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  customQuotes CustomQuote[]
+  orders       Order[]
+}
+
+model Filament {
+  id             String        @id @default(uuid())
+  name           String
+  brand          String
+  materialType   MaterialType
+  colorHex       String
+  pricePerGram   Decimal       @db.Decimal(10, 4)
+  densityGPerCm3 Float         @default(1.24)
+  nozzleTempC    Int           @default(210)
+  bedTempC       Int           @default(60)
+  inStock        Boolean       @default(true)
+  spoolWeightG   Int           @default(1000)
+  createdAt      DateTime      @default(now())
+
+  customQuotes   CustomQuote[]
+  orderItems     OrderItem[]
+}
+
+model CatalogModel {
+  id               String      @id @default(uuid())
+  title            String
+  slug             String      @unique
+  description      String
+  category         String
+  stlFilePath      String      // Stored in /data/catalog/...
+  thumbnailUrl     String
+  basePrice        Decimal     @db.Decimal(10, 2)
+  estimatedWeightG Float
+  estimatedTimeSec Int
+  dimensionsMm     Json        // { "x": 140.0, "y": 90.5, "z": 35.2 }
+  popularityScore  Int         @default(0)
+  isFeatured       Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  orderItems       OrderItem[]
+
+  @@index([popularityScore(sort: Desc)])
+  @@index([category])
+}
+
+model CustomQuote {
+  id                String      @id @default(uuid())
+  userId            String?
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  originalFileName  String
+  stlFilePath       String      // Saved in /data/uploads/<uuid>.stl
+  gcodeFilePath     String?     // Written by slicer-worker to /data/gcode/<uuid>.gcode
+
+  filamentId        String
+  filament          Filament    @relation(fields: [filamentId], references: [id])
+  layerHeightMm     Float       @default(0.20)
+  infillPercentage  Int         @default(20)
+  supportsEnabled   Boolean     @default(false)
+  scalePercentage   Float       @default(100.0)
+  dimensionsMm      Json?
+
+  bullMqJobId       String?     @unique
+  status            QuoteStatus @default(QUEUED)
+  errorMessage      String?
+  estimatedWeightG  Float?
+  estimatedLengthMm Float?
+  estimatedTimeSec  Int?
+  calculatedPrice   Decimal?    @db.Decimal(10, 2)
+
+  createdAt         DateTime    @default(now())
+  expiresAt         DateTime?
+
+  orderItems        OrderItem[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  status          OrderStatus @default(PENDING_PAYMENT)
+  totalPrice      Decimal     @db.Decimal(10, 2)
+
+  shippingAddress String
+  city            String
+  county          String
+  postalCode      String
+  notes           String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id             String        @id @default(uuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  catalogModelId String?
+  catalogModel   CatalogModel? @relation(fields: [catalogModelId], references: [id])
+
+  customQuoteId  String?
+  customQuote    CustomQuote?  @relation(fields: [customQuoteId], references: [id])
+
+  filamentId     String
+  filament       Filament      @relation(fields: [filamentId], references: [id])
+
+  quantity       Int           @default(1)
+  unitPrice      Decimal       @db.Decimal(10, 2)
+}
